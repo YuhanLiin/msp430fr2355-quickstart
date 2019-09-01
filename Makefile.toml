@@ -1,0 +1,16 @@
+[tasks.build]
+command = "xargo"
+args = ["build", "--example", "${@}"]
+
+[env]
+DBG_EXAMPLE_DIR = "target/msp430-none-elf/debug/examples/"
+
+[tasks.run]
+command = "mspdebug"
+dependencies = ["build"]
+args = ["tilib", "\"prog ${DBG_EXAMPLE_DIR}${@} & run \""]
+
+[tasks.debug]
+dependencies = ["build"]
+script_runner = "bash"
+script = ["mspdebug tilib -C <(echo \"prog ${DBG_EXAMPLE_DIR}${@}\")"]
