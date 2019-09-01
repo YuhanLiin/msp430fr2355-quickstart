@@ -39,6 +39,7 @@ fn main() {
         let timer = &peripherals.TB0;
         // Set upmode interval to 1200 cycles
         timer.tb0ccr0.write(|w| unsafe { w.bits(10000) });
+        timer.tb0ex0.write(|w| w.tbidex()._4());
         // Set timer0 to use ACLK, up mode, and enable TBIFG interrupts
         timer
             .tb0ctl
