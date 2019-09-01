@@ -5,14 +5,14 @@
 #![no_std]
 
 extern crate msp430;
-extern crate msp430g2553;
+extern crate msp430fr2355;
 #[macro_use(task)]
 extern crate msp430_rtfm as rtfm;
 
 use rtfm::app;
 
 app! {
-    device: msp430g2553,
+    device: msp430fr2355,
 
     resources: {
         static SHARED: u32 = 0;
@@ -37,7 +37,9 @@ fn idle(mut r: idle::Resources) -> ! {
 
         // to access a *shared* resource from `idle` a critical section is
         // needed
-        rtfm::atomic(|cs| { **r.SHARED.borrow_mut(cs) += 1; });
+        rtfm::atomic(|cs| {
+            **r.SHARED.borrow_mut(cs) += 1;
+        });
 
         // ..
     }

@@ -1,21 +1,28 @@
 [package]
-authors = ["Jorge Aparicio <jorge@japaric.io>"]
-name = "msp430-quickstart"
+authors = ["Yuhan Lin <linyuhan0315@hotmail.com>"]
+name = "msp430fr2355-quickstart"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies.panic-msp430]
 version = "0.1.0"
 
 [dependencies.msp430]
 version = "0.1.0"
 
 [dependencies.msp430-rt]
-features = ["abort-on-panic"]
-version = "0.1.0"
+path = "../msp430-rt/"
 
 [dependencies.msp430-rtfm]
 git = "https://github.com/japaric/msp430-rtfm"
 
-[dependencies.msp430g2553]
+[dependencies.msp430fr2355]
 features = ["rt"]
-version = "0.1.0"
+version = "0.2.1"
 
 [profile.release]
 lto = true
+panic = "abort"
+
+[profile.dev]
+panic = "abort"

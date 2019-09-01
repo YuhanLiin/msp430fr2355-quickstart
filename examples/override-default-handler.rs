@@ -2,7 +2,7 @@
 #![feature(abi_msp430_interrupt)]
 
 #[macro_use(default_handler)]
-extern crate msp430g2553;
+extern crate msp430fr2355;
 
 use core::ptr;
 

@@ -4,7 +4,7 @@
 #![no_std]
 
 extern crate msp430;
-extern crate msp430g2553;
+extern crate msp430fr2355;
 #[macro_use(task)]
 extern crate msp430_rtfm as rtfm;
 
@@ -12,7 +12,7 @@ use msp430::asm;
 use rtfm::app;
 
 app! {
-    device: msp430g2553,
+    device: msp430fr2355,
 
     tasks: {
         TIMER0_A1: {
@@ -67,6 +67,5 @@ fn periodic(r: TIMER0_A1::Resources) {
 
     r.PORT_1_2
         .p1out
-        .modify(|r, w| w.p0().bit(!r.p0().bit())
-                        .p6().bit(!r.p6().bit()));
+        .modify(|r, w| w.p0().bit(!r.p0().bit()).p6().bit(!r.p6().bit()));
 }

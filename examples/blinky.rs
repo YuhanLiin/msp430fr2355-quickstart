@@ -1,10 +1,11 @@
 #![no_std]
 
 extern crate msp430;
-extern crate msp430g2553;
+extern crate msp430fr2355;
+extern crate panic_msp430;
 
 use msp430::{asm, interrupt};
-use msp430g2553::PORT_1_2;
+use msp430fr2355::Peripherals;
 
 fn delay(n: u16) {
     let mut i = 0;
@@ -22,33 +23,28 @@ fn delay(n: u16) {
 // P0 = red LED
 // P6 = green LED
 fn main() {
-    interrupt::free(|cs| {
+    let peripherals = Peripherals::take().unwrap();
+
+    interrupt::free(|_| {
         // Disable watchdog
-        let wdt = msp430g2553::WATCHDOG_TIMER.borrow(&cs);
-        wdt.wdtctl.write(|w| {
-            unsafe { w.bits(0x5A00) } // password
-            .wdthold().set_bit()
-        });
+        let wdt = peripherals.WDT_A;
+        wdt.wdtctl
+            .write(|w| unsafe { w.wdtpw().bits(0x5A) }.wdthold().hold());
 
-        let port_1_2 = PORT_1_2.borrow(cs);
+        peripherals.PMM.pm5ctl0.write(|w| w.locklpm5().locklpm5_0());
 
-        // set P0 high and P6 low
-        port_1_2
-            .p1out
-            .modify(|_, w| w.p0().set_bit().p6().clear_bit());
+        let port1 = peripherals.P1;
+        port1.p1dir.write(|w| unsafe { w.bits(0xFF) });
 
-        // Set P0 and P6 as outputs
-        port_1_2
-            .p1dir
-            .modify(|_, w| w.p0().set_bit().p6().set_bit());
+        let port6 = peripherals.P6;
+        port6.p6dir.write(|w| unsafe { w.bits(0xFF) });
 
         loop {
             delay(10_000);
 
             // toggle outputs
-            port_1_2.p1out.modify(
-                |r, w| w.p0().bit(!r.p0().bit()).p6().bit(!r.p6().bit()),
-            );
+            port1.p1out.modify(|r, w| unsafe { w.bits(!r.bits()) });
+            port6.p6out.modify(|r, w| unsafe { w.bits(!r.bits()) });
         }
     });
 }
