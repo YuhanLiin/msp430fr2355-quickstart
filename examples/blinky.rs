@@ -20,8 +20,6 @@ fn delay(n: u16) {
     }
 }
 
-// P0 = red LED
-// P6 = green LED
 fn main() {
     let peripherals = Peripherals::take().unwrap();
 
