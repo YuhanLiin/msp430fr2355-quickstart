@@ -11,7 +11,8 @@ version = "0.1.0"
 version = "0.1.0"
 
 [dependencies.msp430-rt]
-path = "../msp430-rt/"
+git = "https://github.com/YuhanLiin/msp430-rt.git"
+branch = "remove-panic"
 
 [dependencies.msp430fr2355]
 features = ["rt"]
