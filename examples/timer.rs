@@ -1,22 +1,20 @@
 #![no_std]
 #![feature(abi_msp430_interrupt)]
 
-extern crate msp430;
 #[macro_use(interrupt)]
 extern crate msp430fr2355;
 extern crate panic_msp430;
 
-use msp430::{asm, interrupt};
+use core::cell::UnsafeCell;
+use msp430::interrupt;
 use msp430fr2355::Peripherals;
 
-static mut PERIPHERALS: Option<interrupt::Mutex<Peripherals>> = None;
+static PERIPHERALS: interrupt::Mutex<UnsafeCell<Option<Peripherals>>> =
+    interrupt::Mutex::new(UnsafeCell::new(None));
 
 fn main() {
     interrupt::free(|cs| {
-        let peripherals = unsafe {
-            PERIPHERALS = Some(interrupt::Mutex::new(Peripherals::take().unwrap()));
-            PERIPHERALS.as_ref().unwrap().borrow(cs)
-        };
+        let peripherals = Peripherals::take().unwrap();
 
         // Disable watchdog
         let wdt = &peripherals.WDT_A;
@@ -45,6 +43,8 @@ fn main() {
             .tb0ctl
             .write(|w| w.tbssel().aclk().mc().up().tbclr().set_bit());
         timer.tb0cctl0.write(|w| w.ccie().set_bit());
+
+        unsafe { *PERIPHERALS.borrow(cs).get() = Some(peripherals) };
     });
 
     unsafe { interrupt::enable() };
@@ -55,7 +55,7 @@ fn main() {
 interrupt!(TIMER0_B0, timer_handler);
 fn timer_handler() {
     interrupt::free(|cs| {
-        let peripherals = unsafe { PERIPHERALS.as_ref().unwrap().borrow(cs) };
+        let peripherals = unsafe { &*PERIPHERALS.borrow(cs).get() }.as_ref().unwrap();
 
         // Clearing the IFG bit causes interrupt to stop working, so we don't do it
         //let timer = &peripherals.TB0;

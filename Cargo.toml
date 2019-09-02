@@ -13,9 +13,6 @@ version = "0.1.0"
 [dependencies.msp430-rt]
 path = "../msp430-rt/"
 
-[dependencies.msp430-rtfm]
-git = "https://github.com/japaric/msp430-rtfm"
-
 [dependencies.msp430fr2355]
 features = ["rt"]
 version = "0.2.1"

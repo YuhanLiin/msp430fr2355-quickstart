@@ -3,6 +3,7 @@
 
 #[macro_use(default_handler)]
 extern crate msp430fr2355;
+extern crate panic_msp430;
 
 use core::ptr;
 
