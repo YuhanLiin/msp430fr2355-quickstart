@@ -23,26 +23,27 @@ fn delay(n: u16) {
 fn main() {
     let peripherals = Peripherals::take().unwrap();
 
-    interrupt::free(|_| {
-        // Disable watchdog
-        let wdt = peripherals.WDT_A;
-        wdt.wdtctl
-            .write(|w| unsafe { w.wdtpw().bits(0x5A) }.wdthold().hold());
+    // Disable watchdog
+    let wdt = peripherals.WDT_A;
+    wdt.wdtctl
+        .write(|w| unsafe { w.wdtpw().bits(0x5A) }.wdthold().hold());
 
-        peripherals.PMM.pm5ctl0.write(|w| w.locklpm5().locklpm5_0());
+    peripherals.PMM.pm5ctl0.write(|w| w.locklpm5().locklpm5_0());
 
-        let port1 = peripherals.P1;
-        port1.p1dir.write(|w| unsafe { w.bits(0xFF) });
+    let port1 = peripherals.P1;
+    let port6 = peripherals.P6;
 
-        let port6 = peripherals.P6;
-        port6.p6dir.write(|w| unsafe { w.bits(0xFF) });
+    port1.p1dir.write(|w| unsafe { w.bits(0xFF) });
+    port6.p6dir.write(|w| unsafe { w.bits(0xFF) });
 
-        loop {
-            delay(10_000);
+    port1.p1out.write(|w| unsafe { w.bits(0xFF) });
+    port6.p6out.write(|w| unsafe { w.bits(0xFF) });
 
-            // toggle outputs
-            port1.p1out.modify(|r, w| unsafe { w.bits(!r.bits()) });
-            port6.p6out.modify(|r, w| unsafe { w.bits(!r.bits()) });
-        }
-    });
+    loop {
+        delay(10_000);
+
+        // toggle outputs
+        port1.p1out.modify(|r, w| unsafe { w.bits(!r.bits()) });
+        port6.p6out.modify(|r, w| unsafe { w.bits(!r.bits()) });
+    }
 }
