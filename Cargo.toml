@@ -11,17 +11,21 @@ version = "0.1.0"
 version = "0.1.0"
 
 [dependencies.msp430-rt]
-git = "https://github.com/YuhanLiin/msp430-rt.git"
-branch = "remove-panic"
+version = "0.1.3"
 
 [dependencies.msp430fr2355]
 features = ["rt"]
 version = "0.2.1"
 
 [profile.release]
-lto = true
+lto = "fat"
 panic = "abort"
+codegen-units = 1
 
 [profile.dev]
 panic = "abort"
 opt-level = 1
+
+[patch.crates-io.msp430-rt]
+git = "https://github.com/YuhanLiin/msp430-rt.git"
+branch = "remove-panic"
