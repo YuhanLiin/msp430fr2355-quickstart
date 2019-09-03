@@ -19,8 +19,9 @@ features = ["rt"]
 version = "0.2.1"
 
 [profile.release]
-lto = true
+lto = "fat"
 panic = "abort"
+codegen-units = 1
 
 [profile.dev]
 panic = "abort"
