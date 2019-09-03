@@ -5,12 +5,12 @@
 extern crate msp430fr2355;
 extern crate panic_msp430;
 
-use core::cell::UnsafeCell;
+use core::cell::RefCell;
 use msp430::interrupt;
 use msp430fr2355::Peripherals;
 
-static PERIPHERALS: interrupt::Mutex<UnsafeCell<Option<Peripherals>>> =
-    interrupt::Mutex::new(UnsafeCell::new(None));
+static PERIPHERALS: interrupt::Mutex<RefCell<Option<Peripherals>>> =
+    interrupt::Mutex::new(RefCell::new(None));
 
 fn main() {
     interrupt::free(|cs| {
@@ -44,7 +44,7 @@ fn main() {
             .write(|w| w.tbssel().aclk().mc().up().tbclr().set_bit());
         timer.tb0cctl0.write(|w| w.ccie().set_bit());
 
-        unsafe { *PERIPHERALS.borrow(cs).get() = Some(peripherals) };
+        *PERIPHERALS.borrow(cs).borrow_mut() = Some(peripherals);
     });
 
     unsafe { interrupt::enable() };
@@ -55,7 +55,8 @@ fn main() {
 interrupt!(TIMER0_B0, timer_handler);
 fn timer_handler() {
     interrupt::free(|cs| {
-        let peripherals = unsafe { &*PERIPHERALS.borrow(cs).get() }.as_ref().unwrap();
+        let peripherals_ref = &*PERIPHERALS.borrow(cs).borrow();
+        let peripherals = peripherals_ref.as_ref().unwrap();
 
         // Clearing the IFG bit causes interrupt to stop working, so we don't do it
         //let timer = &peripherals.TB0;

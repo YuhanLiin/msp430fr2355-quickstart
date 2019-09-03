@@ -4,6 +4,7 @@ extern crate msp430fr2355;
 extern crate panic_msp430;
 
 use core::cell::Cell;
+use core::cell::RefCell;
 use core::cell::UnsafeCell;
 
 fn main() {
@@ -14,4 +15,7 @@ fn main() {
 
     let c = Cell::new(3);
     c.set(4);
+
+    let r = RefCell::new(None);
+    *r.borrow_mut() = Some(2);
 }
