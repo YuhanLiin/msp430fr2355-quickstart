@@ -2,6 +2,9 @@
 rustflags = [
     "-C", "link-arg=-nostartfiles",
     "-C", "link-arg=-Tlink.x",
+    "-C", "link-arg=-lgcc",
+    "-C", "link-arg=-lmul_none",
+    "-C", "link-arg=-mcpu=msp430",
 ]
 
 [build]
