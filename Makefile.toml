@@ -1,6 +1,6 @@
 [tasks.build]
-command = "xargo"
-args = ["build", "--example", "${@}"]
+command = "cargo"
+args = ["xbuild", "--example", "${@}"]
 
 [env]
 DBG_EXAMPLE_DIR = "target/msp430-none-elf/debug/examples/"
