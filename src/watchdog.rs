@@ -1,4 +1,4 @@
-use crate::clocks::Clocks;
+use crate::clocks::{Aclk, Smclk};
 use core::marker::PhantomData;
 use msp430fr2355 as pac;
 use pac::wdt_a::wdtctl::WDTSSEL_A;
@@ -49,7 +49,7 @@ impl<MODE> Wdt<MODE> {
         self
     }
 
-    pub fn set_aclk(self, _clks: &Clocks) -> Self {
+    pub fn set_aclk(self, _clks: &Aclk) -> Self {
         self.set_clk(WDTSSEL_A::ACLK)
     }
 
@@ -57,10 +57,8 @@ impl<MODE> Wdt<MODE> {
         self.set_clk(WDTSSEL_A::VLOCLK)
     }
 
-    pub fn set_smclk(self, clks: &Clocks) -> Result<Self, ()> {
-        clks.smclk()
-            .ok_or(())
-            .map(|_| self.set_clk(WDTSSEL_A::SMCLK))
+    pub fn set_smclk(self, _clks: &Smclk) -> Self {
+        self.set_clk(WDTSSEL_A::SMCLK)
     }
 
     pub fn reset(&mut self) {

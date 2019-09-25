@@ -1,14 +1,12 @@
-use core::marker::PhantomData;
 use msp430fr2355 as pac;
 use pac::cs::csctl1::DCORSEL_A;
 use pac::cs::csctl4::{SELA_A, SELMS_A};
 
-const REFOCLK: u32 = 32768;
-const VLOCLK: u32 = 10000;
-const DCOCLK_MAX: u32 = REFOCLK * 768;
+const REFOCLK: u16 = 32768;
+const VLOCLK: u16 = 10000;
+const DCOCLK_MAX: u32 = REFOCLK as u32 * 768;
 
 const MCLK_DIV_EXP: u8 = 7;
-const SMCLK_DIV_EXP: u8 = 3;
 const MAX_DCO_MUL_EXP: u8 = 10;
 
 pub trait CsExt {
@@ -20,13 +18,11 @@ impl CsExt for pac::CS {
         // These are the microcontroller default settings
         ClocksConfig {
             periph: self,
-            _mode: PhantomData,
-            mclk_freq: REFOCLK,
+            mode: Undefined,
+            mclk_freq: REFOCLK as u32,
             mclk_div: 0,
             mclk_sel: MclkSel::Refoclk,
-            smclk_freq: Some(REFOCLK),
-            smclk_div: 0,
-            aclk_freq: AclkFreq::Refoclk,
+            aclk_sel: AclkSel::Refoclk,
         }
     }
 }
@@ -55,23 +51,19 @@ pub struct ClocksConfig<MODE> {
     mclk_sel: MclkSel,
     mclk_div: u8,
     mclk_freq: u32,
-    smclk_div: u8,
-    smclk_freq: Option<u32>,
-    aclk_freq: AclkFreq,
-    _mode: PhantomData<MODE>,
+    aclk_sel: AclkSel,
+    mode: MODE,
 }
 
 macro_rules! mk_clkconf {
-    ($conf:expr) => {
+    ($conf:expr, $mode:expr) => {
         ClocksConfig {
             periph: $conf.periph,
             mclk_sel: $conf.mclk_sel,
             mclk_div: $conf.mclk_div,
             mclk_freq: $conf.mclk_freq,
-            smclk_div: $conf.smclk_div,
-            smclk_freq: $conf.smclk_freq,
-            aclk_freq: $conf.aclk_freq,
-            _mode: PhantomData,
+            aclk_sel: $conf.aclk_sel,
+            mode: $mode,
         }
     };
 }
@@ -79,26 +71,43 @@ macro_rules! mk_clkconf {
 // Makes sure MCLK is only defined before SMCLK
 pub struct Undefined;
 pub struct MclkDefined;
-pub struct SmclkDefined;
+pub struct SmclkDefined(u8);
+pub struct SmclkDisabled;
+
+pub trait SmclkState {
+    fn div(&self) -> Option<u8>;
+}
+
+impl SmclkState for SmclkDefined {
+    fn div(&self) -> Option<u8> {
+        Some(self.0)
+    }
+}
+
+impl SmclkState for SmclkDisabled {
+    fn div(&self) -> Option<u8> {
+        None
+    }
+}
 
 #[derive(Clone, Copy)]
-enum AclkFreq {
+enum AclkSel {
     Vloclk,
     Refoclk,
 }
 
-impl AclkFreq {
+impl AclkSel {
     fn to_sela(self) -> SELA_A {
         match self {
-            AclkFreq::Vloclk => SELA_A::VLOCLK,
-            AclkFreq::Refoclk => SELA_A::REFOCLK,
+            AclkSel::Vloclk => SELA_A::VLOCLK,
+            AclkSel::Refoclk => SELA_A::REFOCLK,
         }
     }
 
     fn freq(self) -> u16 {
         match self {
-            AclkFreq::Vloclk => VLOCLK as u16,
-            AclkFreq::Refoclk => REFOCLK as u16,
+            AclkSel::Vloclk => VLOCLK as u16,
+            AclkSel::Refoclk => REFOCLK as u16,
         }
     }
 }
@@ -111,14 +120,13 @@ pub enum ClockFreqError {
 
 impl<MODE> ClocksConfig<MODE> {
     fn match_clk_spec(
-        hz: u32,
-        max_freq: u32,
+        hz: u16,
+        max_freq: u16,
         max_div_exp: u8,
-        infallible: bool,
-    ) -> Result<(u32, u8), ClockFreqError> {
-        if hz > max_freq && !infallible {
+    ) -> Result<(u16, u8), ClockFreqError> {
+        if hz > max_freq {
             Err(ClockFreqError::TooHigh)
-        } else if hz < max_freq >> max_div_exp && !infallible {
+        } else if hz < max_freq >> max_div_exp {
             Err(ClockFreqError::TooLow)
         } else {
             for div in (0..max_div_exp + 1).rev() {
@@ -137,31 +145,32 @@ impl<MODE> ClocksConfig<MODE> {
         }
     }
 
-    pub fn aclk_refoclk(mut self) -> Self {
-        self.aclk_freq = AclkFreq::Refoclk;
+    pub const fn aclk_refoclk(mut self) -> Self {
+        self.aclk_sel = AclkSel::Refoclk;
         self
     }
 
-    pub fn aclk_vloclk(mut self) -> Self {
-        self.aclk_freq = AclkFreq::Vloclk;
+    pub const fn aclk_vloclk(mut self) -> Self {
+        self.aclk_sel = AclkSel::Vloclk;
         self
     }
 }
 
 fn determine_dco_range(hz: u32) -> DCORSEL_A {
-    if hz < REFOCLK * 32 {
+    let fll_ref = REFOCLK as u32;
+    if hz < fll_ref * 32 {
         DCORSEL_A::DCORSEL_0
-    } else if hz < REFOCLK * 64 {
+    } else if hz < fll_ref * 64 {
         DCORSEL_A::DCORSEL_1
-    } else if hz < REFOCLK * 128 {
+    } else if hz < fll_ref * 128 {
         DCORSEL_A::DCORSEL_2
-    } else if hz < REFOCLK * 256 {
+    } else if hz < fll_ref * 256 {
         DCORSEL_A::DCORSEL_3
-    } else if hz < REFOCLK * 384 {
+    } else if hz < fll_ref * 384 {
         DCORSEL_A::DCORSEL_4
-    } else if hz < REFOCLK * 512 {
+    } else if hz < fll_ref * 512 {
         DCORSEL_A::DCORSEL_5
-    } else if hz < REFOCLK * 640 {
+    } else if hz < fll_ref * 640 {
         DCORSEL_A::DCORSEL_6
     } else {
         DCORSEL_A::DCORSEL_7
@@ -170,24 +179,24 @@ fn determine_dco_range(hz: u32) -> DCORSEL_A {
 
 impl ClocksConfig<Undefined> {
     pub fn mclk_refoclk(self, hz: u16) -> Result<ClocksConfig<MclkDefined>, ClockFreqError> {
-        let (mclk_freq, mclk_div) = Self::match_clk_spec(hz as u32, REFOCLK, MCLK_DIV_EXP, false)?;
+        let (mclk_freq, mclk_div) = Self::match_clk_spec(hz, REFOCLK, MCLK_DIV_EXP)?;
         let mclk_sel = MclkSel::Refoclk;
         Ok(ClocksConfig {
             mclk_div,
-            mclk_freq,
+            mclk_freq: mclk_freq as u32,
             mclk_sel,
-            ..mk_clkconf!(self)
+            ..mk_clkconf!(self, MclkDefined)
         })
     }
 
     pub fn mclk_vloclk(self, hz: u16) -> Result<ClocksConfig<MclkDefined>, ClockFreqError> {
-        let (mclk_freq, mclk_div) = Self::match_clk_spec(hz as u32, VLOCLK, MCLK_DIV_EXP, false)?;
+        let (mclk_freq, mclk_div) = Self::match_clk_spec(hz, VLOCLK, MCLK_DIV_EXP)?;
         let mclk_sel = MclkSel::Vloclk;
         Ok(ClocksConfig {
             mclk_div,
-            mclk_freq,
+            mclk_freq: mclk_freq as u32,
             mclk_sel,
-            ..mk_clkconf!(self)
+            ..mk_clkconf!(self, MclkDefined)
         })
     }
 
@@ -199,9 +208,9 @@ impl ClocksConfig<Undefined> {
         } else {
             let (div, hz_err, div_freq) = (0..MCLK_DIV_EXP + 1)
                 .filter_map(|div| {
-                    let peak_freq = REFOCLK << (MAX_DCO_MUL_EXP - div);
+                    let peak_freq = (REFOCLK as u32) << (MAX_DCO_MUL_EXP - div);
                     let div_freq = (REFOCLK >> div) as u32;
-                    if peak_freq < hz || div_freq as u32 > hz {
+                    if peak_freq < hz || div_freq > hz {
                         None
                     } else {
                         let hz_err = hz % div_freq;
@@ -223,41 +232,40 @@ impl ClocksConfig<Undefined> {
                 mclk_div,
                 mclk_freq,
                 mclk_sel,
-                ..mk_clkconf!(self)
+                ..mk_clkconf!(self, MclkDefined)
             })
         }
     }
 
-    pub fn mclk_default(self) -> ClocksConfig<MclkDefined> {
-        mk_clkconf!(self)
+    pub const fn mclk_default(self) -> ClocksConfig<MclkDefined> {
+        mk_clkconf!(self, MclkDefined)
     }
 }
 
 impl ClocksConfig<MclkDefined> {
-    pub fn smclk_on(self, hz: u32) -> ClocksConfig<SmclkDefined> {
-        let (smclk_freq, smclk_div) =
-            Self::match_clk_spec(hz as u32, self.mclk_freq, SMCLK_DIV_EXP, true).unwrap();
-        ClocksConfig {
-            smclk_div,
-            smclk_freq: Some(smclk_freq),
-            ..mk_clkconf!(self)
-        }
+    pub const fn smclk_divide_1(self) -> ClocksConfig<SmclkDefined> {
+        mk_clkconf!(self, SmclkDefined(0))
     }
 
-    pub fn smclk_off(self) -> ClocksConfig<SmclkDefined> {
-        ClocksConfig {
-            smclk_freq: None,
-            ..mk_clkconf!(self)
-        }
+    pub const fn smclk_divide_2(self) -> ClocksConfig<SmclkDefined> {
+        mk_clkconf!(self, SmclkDefined(1))
     }
 
-    pub fn smclk_default(self) -> ClocksConfig<SmclkDefined> {
-        mk_clkconf!(self)
+    pub const fn smclk_divide_4(self) -> ClocksConfig<SmclkDefined> {
+        mk_clkconf!(self, SmclkDefined(2))
+    }
+
+    pub const fn smclk_divide_8(self) -> ClocksConfig<SmclkDefined> {
+        mk_clkconf!(self, SmclkDefined(3))
+    }
+
+    pub const fn smclk_off(self) -> ClocksConfig<SmclkDisabled> {
+        mk_clkconf!(self, SmclkDisabled)
     }
 }
 
-impl ClocksConfig<SmclkDefined> {
-    pub fn freeze(self) -> Clocks {
+impl<SMCLK: SmclkState> ClocksConfig<SMCLK> {
+    fn configure_periph(&self) {
         if let MclkSel::Dcoclk { multiplier, range } = self.mclk_sel {
             // Turn off FLL if it were possible
             self.periph.csctl3.write(|w| w.selref().refoclk());
@@ -273,43 +281,69 @@ impl ClocksConfig<SmclkDefined> {
 
         self.periph.csctl4.write(|w| {
             w.sela()
-                .variant(self.aclk_freq.to_sela())
+                .variant(self.aclk_sel.to_sela())
                 .selms()
                 .variant(self.mclk_sel.selms())
         });
 
         self.periph.csctl5.write(|w| {
             let w = w.vloautooff().set_bit().divm().bits(self.mclk_div);
-            match self.smclk_freq {
-                Some(_) => w.divs().bits(self.smclk_div),
+            match self.mode.div() {
+                Some(div) => w.divs().bits(div),
                 None => w.smclkoff().set_bit(),
             }
         });
-
-        Clocks {
-            mclk_freq: self.mclk_freq,
-            smclk_freq: self.smclk_freq,
-            aclk_freq: self.aclk_freq.freq(),
-        }
     }
 }
 
-pub struct Clocks {
-    mclk_freq: u32,
-    smclk_freq: Option<u32>,
-    aclk_freq: u16,
+impl ClocksConfig<SmclkDefined> {
+    pub fn freeze(self) -> (Mclk, Smclk, Aclk) {
+        self.configure_periph();
+        (
+            Mclk(self.mclk_freq),
+            Smclk(self.mclk_freq >> self.mode.0),
+            Aclk(self.aclk_sel.freq()),
+        )
+    }
 }
 
-impl Clocks {
-    pub fn mclk(&self) -> u32 {
-        self.mclk_freq
+impl ClocksConfig<SmclkDisabled> {
+    pub fn freeze(self) -> (Mclk, Aclk) {
+        self.configure_periph();
+        (Mclk(self.mclk_freq), Aclk(self.aclk_sel.freq()))
     }
+}
 
-    pub fn smclk(&self) -> Option<u32> {
-        self.smclk_freq
+pub struct Mclk(u32);
+pub struct Smclk(u32);
+pub struct Aclk(u16);
+
+pub trait Clock {
+    type Freq;
+
+    fn freq(&self) -> Self::Freq;
+}
+
+impl Clock for Mclk {
+    type Freq = u32;
+
+    fn freq(&self) -> u32 {
+        self.0
     }
+}
 
-    pub fn aclk(&self) -> u16 {
-        self.aclk_freq
+impl Clock for Smclk {
+    type Freq = u32;
+
+    fn freq(&self) -> u32 {
+        self.0
+    }
+}
+
+impl Clock for Aclk {
+    type Freq = u16;
+
+    fn freq(&self) -> u16 {
+        self.0
     }
 }

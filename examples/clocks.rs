@@ -11,21 +11,16 @@ fn main() {
     let mut p1 = periph.P1.constrain().to_output().unlock(&pmm);
     p1.write(0x00);
 
-    let clocks = periph
+    let (_mclk, smclk, _aclk) = periph
         .CS
         .constrain()
-        .mclk_dcoclk(4000000)
+        .mclk_dcoclk(24000000)
         .unwrap()
-        .smclk_on(2000000)
-        .aclk_vloclk();
-    let clocks = clocks.freeze();
+        .smclk_divide_2()
+        .aclk_vloclk()
+        .freeze();
 
-    let mut wdt = periph
-        .WDT_A
-        .constrain()
-        .set_smclk(&clocks)
-        .unwrap()
-        .to_interval();
+    let mut wdt = periph.WDT_A.constrain().set_smclk(&smclk).to_interval();
     wdt.start(WdtClkPeriods::_512K);
 
     while !wdt.wait_done() {}
