@@ -46,12 +46,11 @@ fn main() {
     p1.write(0x00);
     delay(TIME);
 
-    let mut p1_0 = p1.split().p1_0;
+    let parts = p1.split();
+    let mut p1_0 = parts.p1_0.enable(&parts.pout);
     p1_0.set_bit();
     delay(TIME);
     p1_0.clear_bit();
     delay(TIME);
-
-    let mut p1 = P1::join(Parts { p1_0 });
-    p1.write(0xFF);
+    p1_0.set_bit();
 }
