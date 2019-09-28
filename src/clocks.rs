@@ -2,9 +2,9 @@ use msp430fr2355 as pac;
 use pac::cs::csctl1::DCORSEL_A;
 use pac::cs::csctl4::{SELA_A, SELMS_A};
 
-const REFOCLK: u16 = 32768;
-const VLOCLK: u16 = 10000;
-const DCOCLK_MAX: u32 = REFOCLK as u32 * 768;
+pub const REFOCLK: u16 = 32768;
+pub const VLOCLK: u16 = 10000;
+pub const DCOCLK_MAX: u32 = REFOCLK as u32 * 768;
 
 const MCLK_DIV_EXP: u8 = 7;
 const MAX_DCO_MUL_EXP: u8 = 10;
@@ -201,37 +201,25 @@ impl ClocksConfig<Undefined> {
     }
 
     pub fn mclk_dcoclk(self, hz: u32) -> Result<ClocksConfig<MclkDefined>, ClockFreqError> {
-        if hz < (REFOCLK >> MCLK_DIV_EXP) as u32 {
+        let fll_ref = REFOCLK as u32;
+        if hz < fll_ref {
             Err(ClockFreqError::TooLow)
         } else if hz > DCOCLK_MAX {
             Err(ClockFreqError::TooHigh)
         } else {
-            let (div, hz_err, div_freq) = (0..MCLK_DIV_EXP + 1)
-                .filter_map(|div| {
-                    let peak_freq = (REFOCLK as u32) << (MAX_DCO_MUL_EXP - div);
-                    let div_freq = (REFOCLK >> div) as u32;
-                    if peak_freq < hz || div_freq > hz {
-                        None
-                    } else {
-                        let hz_err = hz % div_freq;
-                        Some((div, hz_err, div_freq))
-                    }
-                })
-                .min_by_key(|(_, hz_err, _)| *hz_err)
-                .unwrap();
-
-            let mut multiplier = (hz / div_freq) as u16;
-            if hz_err > div_freq / 2 {
+            let mut multiplier = hz / fll_ref;
+            if hz % fll_ref > fll_ref / 2 {
                 multiplier += 1;
             }
-            let mclk_freq = multiplier as u32 * div_freq as u32;
-            let range = determine_dco_range(mclk_freq << div);
-            let mclk_sel = MclkSel::Dcoclk { range, multiplier };
-            let mclk_div = div;
+
+            let mclk_freq = multiplier * fll_ref;
             Ok(ClocksConfig {
-                mclk_div,
+                mclk_div: 0,
                 mclk_freq,
-                mclk_sel,
+                mclk_sel: MclkSel::Dcoclk {
+                    multiplier: multiplier as u16,
+                    range: determine_dco_range(hz),
+                },
                 ..mk_clkconf!(self, MclkDefined)
             })
         }
