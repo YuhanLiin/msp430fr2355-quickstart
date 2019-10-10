@@ -1,4 +1,9 @@
 [target.msp430-none-elf]
+# For debugging
+# runner = "msp430-elf-gdb -q -x mspdebug.gdb"
+# For running
+runner = "./run.sh"
+
 rustflags = [
     "-C", "link-arg=-nostartfiles",
     "-C", "link-arg=-Tlink.x",

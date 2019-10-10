@@ -5,21 +5,6 @@ args = ["xbuild", "--example", "${@}"]
 [env]
 DBG_EXAMPLE_DIR = "target/msp430-none-elf/debug/examples/"
 
-[tasks.run]
-command = "mspdebug"
-dependencies = ["build"]
-args = ["tilib", "--allow-fw-update", "\"prog ${DBG_EXAMPLE_DIR}${@} & run \""]
-
-[tasks.debug]
-dependencies = ["build"]
-script_runner = "bash"
-script = ["mspdebug tilib -C <(echo \"prog ${DBG_EXAMPLE_DIR}${@}\ngdb\")"]
-
-[tasks.gdb]
-dependencies = ["build"]
-script_runner = "bash"
-script = ["msp430-elf-gdb ${DBG_EXAMPLE_DIR}${@} -ex=\"target remote localhost:2000\""]
-
 [tasks.objdump]
 command = "msp430-elf-objdump"
 args = ["${DBG_EXAMPLE_DIR}${@}", "-CD"]

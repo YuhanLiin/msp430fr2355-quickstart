@@ -20,11 +20,13 @@ features = ["rt"]
 version = "0.2.1"
 
 [profile.release]
+lto = "fat"
 codegen-units = 1
 opt-level = "z"
 
 [profile.dev]
 opt-level = "s"
+debug = true
 
 [profile.dev.overrides."*"]
 opt-level = "z"
