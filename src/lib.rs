@@ -6,4 +6,5 @@ pub mod gpio;
 #[allow(dead_code)]
 pub mod gpio_trait;
 pub mod serial;
+pub mod timer;
 pub mod watchdog;
