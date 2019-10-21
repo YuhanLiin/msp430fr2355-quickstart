@@ -203,8 +203,8 @@ impl<P: UnderSeven> GpioPin for Port6<P> {
 macro_rules! gpio_impl {
     ($px:ident: $Px:ident =>
      $pxin:ident: $PxIN:ident, $pxout:ident: $PxOUT:ident, $pxdir:ident: $PxDIR:ident,
-     $pxren:ident: $PxREN:ident, $pxselc:ident: $PxSELC:ident, $pxsel0:ident: $PxSEL0:ident, $pxsel1:ident: $PxSEL1:ident,
-     $([$pxies:ident: $PxIES:ident, $pxie:ident: $PxIE:ident, $pxifg:ident: $PxIFG:ident, $pxiv:ident: $PxIV:ident])?
+     $pxren:ident: $PxREN:ident, $pxselc:ident: $PxSELC:ident, $pxsel0:ident: $PxSEL0:ident, $pxsel1:ident: $PxSEL1:ident
+     $(, [$pxies:ident: $PxIES:ident, $pxie:ident: $PxIE:ident, $pxifg:ident: $PxIFG:ident, $pxiv:ident: $PxIV:ident])?
     ) => {
         mod $px {
             use super::*;
@@ -334,10 +334,8 @@ gpio_impl!(p4: P4 => p4in: _P4IN, p4out: _P4OUT, p4dir: _P4DIR,
 
 gpio_impl!(p5: P5 => p5in: _P5IN, p5out: _P5OUT, p5dir: _P5DIR,
      p5ren: _P5REN, p5selc: _P5SELC, 
-     p5sel0: _P5SEL0, p5sel1: _P5SEL1, 
-     [p5ies: _P5IES, p5ie: _P5IE, p5ifg: _P5IFG, p5iv: _P5IV]);
+     p5sel0: _P5SEL0, p5sel1: _P5SEL1);
 
 gpio_impl!(p6: P6 => p6in: _P6IN, p6out: _P6OUT, p6dir: _P6DIR,
      p6ren: _P6REN, p6selc: _P6SELC, 
-     p6sel0: _P6SEL0, p6sel1: _P6SEL1, 
-     [p6ies: _P6IES, p6ie: _P6IE, p6ifg: _P6IFG, p6iv: _P6IV]);
+     p6sel0: _P6SEL0, p6sel1: _P6SEL1);
