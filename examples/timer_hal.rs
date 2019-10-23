@@ -29,8 +29,8 @@ fn main() {
         .set_div(TimerDiv::_2)
         .set_div_ex(TimerDivEx::_3)
         .to_periodic();
-    timers.sub_timer1.set_count(10000 / 6);
-    timers.timer.start(5000);
+    timers.sub_timer1.set_count(200);
+    timers.timer.start(300);
 
     loop {
         while timers.sub_timer1.wait().is_none() {}

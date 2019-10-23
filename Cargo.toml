@@ -17,7 +17,7 @@ git = "https://github.com/rust-embedded/msp430-rt"
 
 [dependencies.msp430fr2355]
 features = ["rt"]
-version = "0.2.1"
+git = "https://github.com/YuhanLiin/msp430fr2355"
 
 [profile.release]
 lto = "fat"

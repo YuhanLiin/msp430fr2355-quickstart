@@ -72,6 +72,24 @@ impl TimerConfig {
             pwm2: Pwm2(()),
         }
     }
+
+    pub fn config_capture(self) -> CaptureConfig {
+        CaptureConfig {
+            timer_config: self,
+            capture0: CapChannelConfig {
+                cap_mode: CaptureMode::NoCapture,
+                select: CaptureSelect::Gnd,
+            },
+            capture1: CapChannelConfig {
+                cap_mode: CaptureMode::NoCapture,
+                select: CaptureSelect::Gnd,
+            },
+            capture2: CapChannelConfig {
+                cap_mode: CaptureMode::NoCapture,
+                select: CaptureSelect::Gnd,
+            },
+        }
+    }
 }
 
 pub enum TimerDiv {
@@ -257,5 +275,130 @@ impl Pwm2 {
     pub fn set_duty(&mut self, ticks: u16) {
         let timer = unsafe { &*TB0::ptr() };
         timer.tb0ccr2.write(|w| unsafe { w.bits(ticks) });
+    }
+}
+
+pub struct CaptureConfig {
+    timer_config: TimerConfig,
+    capture0: CapChannelConfig,
+    capture1: CapChannelConfig,
+    capture2: CapChannelConfig,
+}
+
+pub struct CapChannelConfig {
+    cap_mode: CaptureMode,
+    select: CaptureSelect,
+}
+
+pub enum CaptureMode {
+    NoCapture,
+    Rising,
+    Falling,
+    Both,
+}
+
+pub enum CaptureSelect {
+    CapInputA,
+    CapInputB,
+    Gnd,
+    Vcc,
+}
+
+impl CaptureConfig {
+    pub fn config_chan0(mut self, cap_mode: CaptureMode, select: CaptureSelect) -> Self {
+        self.capture0 = CapChannelConfig { cap_mode, select };
+        self
+    }
+
+    pub fn config_chan1(mut self, cap_mode: CaptureMode, select: CaptureSelect) -> Self {
+        self.capture1 = CapChannelConfig { cap_mode, select };
+        self
+    }
+
+    pub fn config_chan2(mut self, cap_mode: CaptureMode, select: CaptureSelect) -> Self {
+        self.capture2 = CapChannelConfig { cap_mode, select };
+        self
+    }
+
+    pub fn freeze(self) -> Capture {
+        self.timer_config.write_regs();
+        self.timer_config.periph.tb0cctl0.write(|w| {
+            w.cap()
+                .capture()
+                .scs()
+                .sync()
+                .cm()
+                .bits(self.capture0.cap_mode as u8)
+                .ccis()
+                .bits(self.capture0.select as u8)
+        });
+
+        self.timer_config.periph.tb0cctl1.write(|w| {
+            w.cap()
+                .capture()
+                .scs()
+                .sync()
+                .cm()
+                .bits(self.capture1.cap_mode as u8)
+                .ccis()
+                .bits(self.capture1.select as u8)
+        });
+
+        self.timer_config.periph.tb0cctl2.write(|w| {
+            w.cap()
+                .capture()
+                .scs()
+                .sync()
+                .cm()
+                .bits(self.capture2.cap_mode as u8)
+                .ccis()
+                .bits(self.capture2.select as u8)
+        });
+
+        Capture {
+            capture0: CaptureChannnel0(()),
+            capture1: CaptureChannnel1(()),
+            capture2: CaptureChannnel2(()),
+        }
+    }
+}
+
+pub struct Capture {
+    pub capture0: CaptureChannnel0,
+    pub capture1: CaptureChannnel1,
+    pub capture2: CaptureChannnel2,
+}
+
+pub struct CaptureChannnel0(());
+pub struct CaptureChannnel1(());
+pub struct CaptureChannnel2(());
+
+impl Capture {
+    pub fn start(&mut self) {
+        let timer = unsafe { &*TB0::ptr() };
+        timer.tb0ctl.modify(|r, w| {
+            unsafe { w.bits(r.bits()) }
+                .tbclr()
+                .set_bit()
+                .mc()
+                .continuous()
+        });
+    }
+}
+
+impl CaptureChannnel0 {
+    pub fn capture(&mut self) -> Result<Option<u16>, ()> {
+        let timer = unsafe { &*TB0::ptr() };
+        if timer.tb0cctl0.read().ccifg().bit() {
+            let val = timer.tb0ccr0.read().bits();
+            // Read cctl again to prevent races
+            if timer.tb0cctl0.read().cov().bit() {
+                Err(())
+            } else {
+                Ok(Some(val))
+            }
+        } else {
+            Ok(None)
+        }
     }
 }
