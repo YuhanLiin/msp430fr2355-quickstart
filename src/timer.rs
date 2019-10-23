@@ -290,6 +290,7 @@ pub struct CapChannelConfig {
     select: CaptureSelect,
 }
 
+#[derive(Clone, Copy)]
 pub enum CaptureMode {
     NoCapture,
     Rising,
@@ -297,6 +298,7 @@ pub enum CaptureMode {
     Both,
 }
 
+#[derive(Clone, Copy)]
 pub enum CaptureSelect {
     CapInputA,
     CapInputB,
