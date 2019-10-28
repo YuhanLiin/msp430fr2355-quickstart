@@ -258,13 +258,16 @@ impl<SMCLK: SmclkState> ClocksConfig<SMCLK> {
             // Turn off FLL if it were possible
             self.periph.csctl3.write(|w| w.selref().refoclk());
             self.periph.csctl0.write(|w| unsafe { w.bits(0) });
-            self.periph
-                .csctl1
-                .write(|w| w.dcorsel().variant(range).dismod().set_bit());
+            self.periph.csctl1.write(|w| w.dcorsel().variant(range));
             self.periph
                 .csctl2
                 .write(|w| unsafe { w.flln().bits(multiplier) }.flld()._1());
             // Turn on FLL if it were possible
+
+            msp430::asm::nop();
+            msp430::asm::nop();
+            msp430::asm::nop();
+            while !self.periph.csctl7.read().fllunlock().is_fllunlock_0() {}
         }
 
         self.periph.csctl4.write(|w| {

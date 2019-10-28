@@ -19,7 +19,6 @@ fn main() {
     let (_mclk, smclk, _aclk) = periph
         .CS
         .constrain()
-        // Anything above this and flashing becomes a problem
         .mclk_dcoclk(1_000_000)
         .unwrap()
         .smclk_divide_1()
@@ -29,7 +28,7 @@ fn main() {
     let mut pwms = periph.TB0.constrain().use_smclk(&smclk).to_pwm();
 
     pwms.set_period(1000);
-    pwms.pwm1.set_duty(5);
+    pwms.pwm1.set_duty(100);
     pwms.pwm2.set_duty(795);
     pwms.enable();
 

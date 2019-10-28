@@ -140,9 +140,14 @@ impl Timer {
     // Calling start multiple times without cancelling leads to unreliable behaviour
     pub fn start(&mut self, ticks: u16) {
         let timer = unsafe { &*TB0::ptr() };
-        timer.tb0ccr0.write(|w| unsafe { w.bits(ticks) });
-        timer.tb0ctl.modify(|r, w| {
-            unsafe { w.bits(r.bits()) }
+        let tbctl = timer.tb0ctl.read();
+        if !tbctl.mc().is_stop() {
+            timer
+                .tb0ctl
+                .write(|w| unsafe { w.bits(tbctl.bits()) }.mc().stop());
+        }
+        timer.tb0ctl.write(|w| {
+            unsafe { w.bits(tbctl.bits()) }
                 .tbclr()
                 .set_bit()
                 .tbifg()
@@ -150,6 +155,7 @@ impl Timer {
                 .mc()
                 .up()
         });
+        timer.tb0ccr0.write(|w| unsafe { w.bits(ticks) });
     }
 
     // Always None if called before timer has started
@@ -357,6 +363,14 @@ impl CaptureConfig {
                 .bits(self.capture2.select as u8)
         });
 
+        self.timer_config.periph.tb0ctl.modify(|r, w| {
+            unsafe { w.bits(r.bits()) }
+                .tbclr()
+                .set_bit()
+                .mc()
+                .continuous()
+        });
+
         Capture {
             capture0: CaptureChannnel0(()),
             capture1: CaptureChannnel1(()),
@@ -375,28 +389,32 @@ pub struct CaptureChannnel0(());
 pub struct CaptureChannnel1(());
 pub struct CaptureChannnel2(());
 
-impl Capture {
-    pub fn start(&mut self) {
+impl CaptureChannnel1 {
+    fn clear(&mut self, cctl: u16) {
         let timer = unsafe { &*TB0::ptr() };
-        timer.tb0ctl.modify(|r, w| {
-            unsafe { w.bits(r.bits()) }
-                .tbclr()
-                .set_bit()
-                .mc()
-                .continuous()
+        timer.tb0cctl1.write(|w| {
+            unsafe { w.bits(cctl) }
+                .ccifg()
+                .clear_bit()
+                .cov()
+                .clear_bit()
         });
     }
-}
 
-impl CaptureChannnel0 {
-    pub fn capture(&mut self) -> Result<Option<u16>, ()> {
+    pub fn capture(&mut self) -> Result<Option<u16>, u16> {
         let timer = unsafe { &*TB0::ptr() };
-        if timer.tb0cctl0.read().ccifg().bit() {
-            let val = timer.tb0ccr0.read().bits();
-            // Read cctl again to prevent races
-            if timer.tb0cctl0.read().cov().bit() {
-                Err(())
+        let cctl = timer.tb0cctl1.read();
+        if cctl.cov().bit() {
+            self.clear(cctl.bits());
+            Err(timer.tb0ccr1.read().bits())
+        } else if cctl.ccifg().bit() {
+            let val = timer.tb0ccr1.read().bits();
+            // Read cctl again to prevent overrun races
+            if timer.tb0cctl1.read().cov().bit() {
+                self.clear(cctl.bits());
+                Err(val)
             } else {
+                self.clear(cctl.bits());
                 Ok(Some(val))
             }
         } else {
