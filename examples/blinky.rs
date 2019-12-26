@@ -1,3 +1,4 @@
+#![no_main]
 #![no_std]
 
 extern crate msp430;
@@ -5,6 +6,7 @@ extern crate msp430fr2355;
 extern crate panic_msp430;
 
 use msp430::{asm, interrupt};
+use msp430_rt::entry;
 use msp430fr2355::Peripherals;
 
 fn delay(n: u16) {
@@ -20,7 +22,8 @@ fn delay(n: u16) {
     }
 }
 
-fn main() {
+#[entry]
+fn main() -> ! {
     let peripherals = Peripherals::take().unwrap();
 
     // Disable watchdog

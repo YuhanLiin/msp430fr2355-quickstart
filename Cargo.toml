@@ -13,11 +13,12 @@ version = "0.1.0"
 version = "0.1.0"
 
 [dependencies.msp430-rt]
-git = "https://github.com/rust-embedded/msp430-rt"
+version = "0.2.0"
 
 [dependencies.msp430fr2355]
 features = ["rt"]
-git = "https://github.com/YuhanLiin/msp430fr2355"
+git = " https://github.com/YuhanLiin/msp430fr2355"
+branch = "rt-up"
 
 [profile.release]
 lto = "fat"
@@ -30,3 +31,7 @@ debug = true
 
 [profile.dev.overrides."*"]
 opt-level = "z"
+
+[patch.crates-io]
+msp430 = { git = "https://github.com/rust-embedded/msp430", branch = "rt-up" }
+msp430-rt = { git = "https://github.com/rust-embedded/msp430-rt", branch = "rt-up" }
