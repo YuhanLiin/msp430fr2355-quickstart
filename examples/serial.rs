@@ -1,10 +1,13 @@
+#![no_main]
 #![no_std]
 
 extern crate panic_msp430;
 
+use msp430_rt::entry;
 use msp430fr2355_quickstart::{clocks::*, gpio::*, serial::*, watchdog::*};
 
-fn main() {
+#[entry]
+fn main() -> ! {
     let periph = msp430fr2355::Peripherals::take().unwrap();
 
     let wdt = periph.WDT_A.constrain();

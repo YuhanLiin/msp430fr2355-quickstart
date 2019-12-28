@@ -1,8 +1,10 @@
+#![no_main]
 #![no_std]
 
 extern crate panic_msp430;
 
 use msp430::asm;
+use msp430_rt::entry;
 use msp430fr2355_quickstart::gpio::*;
 
 fn delay(n: u32) {
@@ -18,7 +20,8 @@ fn delay(n: u32) {
     }
 }
 
-fn main() {
+#[entry]
+fn main() -> ! {
     const TIME: u32 = 100000;
 
     let periph = msp430fr2355::Peripherals::take().unwrap();
@@ -56,4 +59,6 @@ fn main() {
     //p1_0.clear_bit();
     //delay(TIME);
     //p1_0.set_bit();
+
+    loop {}
 }

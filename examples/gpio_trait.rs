@@ -1,12 +1,15 @@
+#![no_main]
 #![no_std]
 
 extern crate panic_msp430;
 
 use msp430::asm;
+use msp430_rt::entry;
 use msp430fr2355::Peripherals;
 use msp430fr2355_quickstart::gpio_trait::*;
 
-fn main() {
+#[entry]
+fn main() -> ! {
     let peripherals = Peripherals::take().unwrap();
 
     // Disable watchdog

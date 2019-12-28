@@ -1,9 +1,12 @@
+#![no_main]
 #![no_std]
+use msp430_rt::entry;
 use msp430fr2355::Peripherals;
 use msp430fr2355_quickstart::{clocks::*, gpio::*, timer::*, watchdog::*};
 use panic_msp430 as _;
 
-fn main() {
+#[entry]
+fn main() -> ! {
     let periph = msp430fr2355::Peripherals::take().unwrap();
 
     let wdt = periph.WDT_A.constrain();

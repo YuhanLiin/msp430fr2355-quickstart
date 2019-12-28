@@ -1,19 +1,21 @@
+#![no_main]
 #![no_std]
 #![feature(abi_msp430_interrupt)]
 
-#[macro_use(interrupt)]
 extern crate msp430fr2355;
 extern crate panic_msp430;
+use msp430::interrupt as mspint;
+use msp430_rt::entry;
 
 use core::cell::RefCell;
-use msp430::interrupt;
-use msp430fr2355::Peripherals;
+use msp430fr2355::{interrupt, Peripherals};
 
-static PERIPHERALS: interrupt::Mutex<RefCell<Option<Peripherals>>> =
-    interrupt::Mutex::new(RefCell::new(None));
+static PERIPHERALS: mspint::Mutex<RefCell<Option<Peripherals>>> =
+    mspint::Mutex::new(RefCell::new(None));
 
-fn main() {
-    interrupt::free(|cs| {
+#[entry]
+fn main() -> ! {
+    mspint::free(|cs| {
         let peripherals = Peripherals::take().unwrap();
 
         // Disable watchdog
@@ -47,14 +49,14 @@ fn main() {
         *PERIPHERALS.borrow(cs).borrow_mut() = Some(peripherals);
     });
 
-    unsafe { interrupt::enable() };
+    unsafe { mspint::enable() };
 
     loop {}
 }
 
-interrupt!(TIMER0_B0, timer_handler);
-fn timer_handler() {
-    interrupt::free(|cs| {
+#[interrupt]
+fn TIMER0_B0() {
+    mspint::free(|cs| {
         let peripherals_ref = &*PERIPHERALS.borrow(cs).borrow();
         let peripherals = peripherals_ref.as_ref().unwrap();
 
