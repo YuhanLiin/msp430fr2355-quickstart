@@ -2,16 +2,16 @@
 #![no_std]
 #![feature(abi_msp430_interrupt)]
 
-extern crate msp430fr2355;
-extern crate panic_msp430;
-
 use core::cell::RefCell;
-use msp430::interrupt as mspint;
+use msp430::interrupt::enable as enable_interrupts;
 use msp430_rt::entry;
 use msp430fr2355::{interrupt, Peripherals, E_USCI_A1};
+use critical_section::Mutex;
 
-static PERIPHERALS: mspint::Mutex<RefCell<Option<Peripherals>>> =
-    mspint::Mutex::new(RefCell::new(None));
+use panic_msp430 as _;
+
+static PERIPHERALS: Mutex<RefCell<Option<Peripherals>>> =
+    Mutex::new(RefCell::new(None));
 
 // Print ASCII character synchronously, not meant to be called directly
 fn transmit_byte(uart: &E_USCI_A1, ch: u8) {
@@ -20,10 +20,10 @@ fn transmit_byte(uart: &E_USCI_A1, ch: u8) {
 }
 
 fn transmit_char(uart: &E_USCI_A1, ch: u8) {
-    match ch as char {
-        '\n' | '\r' => {
-            transmit_byte(uart, '\r' as u8);
-            transmit_byte(uart, '\n' as u8);
+    match ch {
+        b'\n' | b'\r' => {
+            transmit_byte(uart, b'\r');
+            transmit_byte(uart, b'\n');
         }
         _ => transmit_byte(uart, ch),
     }
@@ -68,18 +68,17 @@ fn main() -> ! {
     transmit_str(uart, "hello world\n");
 
     uart.uca1ie().write(|w| w.ucrxie().set_bit());
-    mspint::free(|cs| {
-        *PERIPHERALS.borrow(cs).borrow_mut() = Some(peripherals);
+    critical_section::with(|cs| {
+        PERIPHERALS.borrow_ref_mut(cs).replace(peripherals);
     });
-    unsafe { mspint::enable() };
+    unsafe { enable_interrupts() };
     loop {}
 }
 
 #[interrupt]
 fn EUSCI_A1() {
-    mspint::free(|cs| {
-        let peripherals_ref = &*PERIPHERALS.borrow(cs).borrow();
-        let peripherals = peripherals_ref.as_ref().unwrap();
+    critical_section::with(|cs| {
+        let Some(ref mut peripherals) = *PERIPHERALS.borrow_ref_mut(cs) else {return};
         let uart = &peripherals.E_USCI_A1;
 
         let iv = uart.uca1iv().read().uciv();

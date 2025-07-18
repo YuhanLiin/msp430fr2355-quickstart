@@ -1,13 +1,11 @@
 #![no_main]
 #![no_std]
 
-extern crate msp430;
-extern crate msp430fr2355;
-extern crate panic_msp430;
-
-use msp430::{asm, interrupt};
+use msp430::asm;
 use msp430_rt::entry;
 use msp430fr2355::Peripherals;
+
+use panic_msp430 as _;
 
 fn delay(n: u16) {
     let mut i = 0;

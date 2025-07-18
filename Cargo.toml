@@ -1,23 +1,19 @@
-cargo-features = ["profile-overrides"]
-
 [package]
 authors = ["Yuhan Lin <linyuhan0315@hotmail.com>"]
 name = "msp430fr2355-quickstart"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2018"
 
-[dependencies.panic-msp430]
-version = "0.2.0"
+[dependencies]
+panic-msp430 = "0.4.0"
+msp430 = {version = "0.4.1", features = ["critical-section-single-core"]}
+msp430-rt = "0.4.0"
+msp430fr2355 = {version = "0.5.2", features = ["rt", "critical-section"]}
+critical-section = "1.2.0"
+msp430-atomic = "0.1.5"
 
-[dependencies.msp430]
-version = "0.2.0"
-
-[dependencies.msp430-rt]
-version = "0.2.0"
-
-[dependencies.msp430fr2355]
-features = ["rt"]
-version = "0.4.0"
+# Not used as-is, but you'll likely want to use it:
+#msp430fr2x5x-hal = "0.4"
 
 [profile.release]
 lto = "fat"
@@ -28,5 +24,5 @@ opt-level = "z"
 opt-level = "s"
 debug = true
 
-[profile.dev.overrides."*"]
+[profile.dev.package."*"]
 opt-level = "z"

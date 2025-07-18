@@ -1,13 +1,14 @@
 #![no_main]
 #![no_std]
 
-extern crate msp430fr2355;
-extern crate panic_msp430;
+use msp430fr2355 as _;
+use msp430_rt::entry;
 
 use core::cell::Cell;
 use core::cell::RefCell;
 use core::cell::UnsafeCell;
-use msp430_rt::entry;
+
+use panic_msp430 as _;
 
 #[entry]
 fn main() -> ! {

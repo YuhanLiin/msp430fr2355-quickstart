@@ -2,22 +2,20 @@
 #![no_std]
 #![feature(abi_msp430_interrupt)]
 
-extern crate panic_msp430;
-
-use core::ptr;
 use msp430_rt::entry;
 use msp430fr2355::interrupt;
+use msp430_atomic::AtomicU16;
+
+use panic_msp430 as _;
 
 #[entry]
 fn main() -> ! {
     loop {}
 }
 
-static mut X: u16 = 0;
+static X: AtomicU16 = AtomicU16::new(0);
 
 #[interrupt]
 fn DefaultHandler() {
-    unsafe {
-        ptr::write_volatile(&mut X, ptr::read_volatile(&X) + 1);
-    }
+    X.store(X.load()+1)
 }
